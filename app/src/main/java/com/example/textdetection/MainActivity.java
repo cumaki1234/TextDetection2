@@ -335,7 +335,7 @@ protected void setFragment() {
         final String[] classes = {"Auditorio", "Biblioteca", "Centro Medico", "Comedor 2","Departamento Academico",
                 "Departamento de Archivos","Departamento de Investigacion","Facultad Ciencias de la Salud","Facultad Ciencias Empresariales","Facultad de Ciencias Pedagogicas","Instituto de informatica",
                 "Parqueadero  Estudiantes","Parqueadero Administrativo","Parqueadero autoridades","Polideportivo","Rectorado","Rotonda"};
-        //txtResults.setText("aqui deberia salir la clase");
+
         String resultado = classes[maxPos];
         //txtResults.setText(classes[maxPos]);
         runOnUiThread(new Runnable() {
@@ -359,8 +359,8 @@ protected void setFragment() {
         // Releases model resources if no longer used.
         model.close();
     } catch (Exception e) {
-        //txtResults.setText("error");
-        Log.i("error setzo", "classifyImage: "+e.getMessage());
+        txtResults.setText("error");
+
     }
 }
 }
