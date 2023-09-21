@@ -27,6 +27,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.example.textdetection.ml.Model;
+import com.example.textdetection.ml.ModelExamen;
 import com.example.textdetection.ml.ModelPrueba;
 import com.example.textdetection.ml.Modelomascota;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -86,8 +87,7 @@ public class MainActivity extends AppCompatActivity implements OnSuccessListener
     }
 
     public void abrirCamera (View view){
-    //Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-    //startActivityForResult(intent, REQUEST_CAMERA);
+
     this.setFragment();
 }
     @Override
@@ -146,15 +146,7 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         return list;
     }
-    public void OCRfx(View v) {
-    InputImage image = InputImage.fromBitmap(mSelectedImage, 0);
 
-    TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
-
-    recognizer.process(image)
-            .addOnSuccessListener(this)
-            .addOnFailureListener(this);
-}
 
 
     @Override
@@ -184,50 +176,9 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     }
 
 
-    public void Rostrosfx(View  v) {
-    InputImage image = InputImage.fromBitmap(mSelectedImage, 0);
-    FaceDetectorOptions options =
-            new FaceDetectorOptions.Builder()
-                    .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
-                    .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
-                    .build();
 
-    FaceDetector detector = FaceDetection.getClient(options);
-    detector.process(image)
-            .addOnSuccessListener(new OnSuccessListener<List<Face>>() {
-                @Override
-                public void onSuccess(List<Face> faces) {
-                    if (faces.size() == 0) {
-                        txtResults.setText("No Hay rostros");
-                    }else{
-                        txtResults.setText("Hay " + faces.size() + " rostro(s)");
-                    }
-                }
-            })
-            .addOnFailureListener(this);
-}
 
-    public void PersonalizedModel(View v) {
-    try {
-        Modelomascota model = Modelomascota.newInstance(getApplicationContext());
-        TensorImage image = TensorImage.fromBitmap(mSelectedImage);
 
-        Modelomascota.Outputs outputs = model.process(image);
-
-        List<Category> probability = outputs.getProbabilityAsCategoryList();
-        Collections.sort(probability, new CategoryComparator());
-
-        String res="";
-        for (int i = 0; i < probability.size(); i++) {
-            res = res + probability.get(i).getLabel() +  " " +  probability.get(i).getScore()*100 + " % \n";
-        }
-
-        txtResults.setText(res);
-        model.close();
-    } catch (IOException e) {
-        txtResults.setText("Error al procesar Modelo");
-    }
-}
     int previewHeight = 0,previewWidth = 0;
 int sensorOrientation;
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
@@ -315,7 +266,7 @@ protected void setFragment() {
     }
 }
     private void processImage() {
-        //aqui colocar el modelo
+
     imageConverter.run();
 
     rgbFrameBitmap = Bitmap.createBitmap(previewWidth, previewHeight, Bitmap.Config.ARGB_8888);
@@ -330,114 +281,18 @@ protected void setFragment() {
     postInferenceCallback.run();
 
 
-    /*
-    try {
-        Modelomascota model = Modelomascota.newInstance(getApplicationContext());
-        TensorImage image = TensorImage.fromBitmap(rgbFrameBitmap);
 
-        Modelomascota.Outputs outputs = model.process(image);
-        List<Category> probability = outputs.getProbabilityAsCategoryList();
-        Collections.sort(probability, new CategoryComparator());
-        String res="";
-        for (int i = 0; i < probability.size(); i++) 
-            res = res + probability.get(i).getLabel() +  " " +  probability.get(i).getScore()*100 + " % \n";
-       
-        txtResults.setText(res);
-        model.close();
-    } catch (IOException e) {
-        txtResults.setText("Error al procesar Modelo");
-    }
-    */
 
 }
-    //modelo
+
     int imageSize = 224;
-    TextToSpeech tts;
+    TextToSpeech hablar;
 
     public void classifyImage(Bitmap image){
-        try {
-            ModelPrueba model = ModelPrueba.newInstance(getApplicationContext());
-            image = Bitmap.createScaledBitmap(image, imageSize, imageSize, true);
-
-
-            // Creates inputs for reference.
-            TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, imageSize,imageSize, 3}, DataType.FLOAT32);
-            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(4 * imageSize * imageSize * 3);
-            byteBuffer.order(ByteOrder.nativeOrder());
-
-
-
-
-            int[] intValues = new int[imageSize * imageSize];
-
-            image.getPixels(intValues, 0, image.getWidth(), 0, 0, image.getWidth(), image.getHeight());
-            int pixel = 0;
-            //iterate over each pixel and extract R, G, and B values. Add those values individually to the byte buffer.
-            for(int i = 0; i < image.getHeight(); i ++){
-                for(int j = 0; j < image.getWidth(); j++){
-                    int val = intValues[pixel++]; // RGB
-                    byteBuffer.putFloat(((val >> 16) & 0xFF) * (1.f/255.f));
-                    byteBuffer.putFloat(((val >> 8) & 0xFF) * (1.f/255.f));
-                    byteBuffer.putFloat((val & 0xFF) * (1.f/255.f));
-                }
-            }
-
-
-
-
-            inputFeature0.loadBuffer(byteBuffer);
-
-            // Runs model inference and gets result.
-            ModelPrueba.Outputs outputs = model.process(inputFeature0);
-            TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
-
-
-
-
-            float[] confidences = outputFeature0.getFloatArray();
-            // find the index of the class with the biggest confidence.
-            int maxPos = 0;
-            float maxConfidence = 0;
-            for (int i = 0; i < confidences.length; i++) {
-                if (confidences[i] > maxConfidence) {
-                    maxConfidence = confidences[i];
-                    maxPos = i;
-                }
-            }
-
-            final String[] classes = {"Bryan", "eminen"};
-            String resultado=classes[maxPos];
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    txtResults.setText(resultado);
-                }
-            });
-            tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
-                @Override
-                public void onInit(int status) {
-                    if (status==TextToSpeech.SUCCESS)
-                    {
-                        tts.setLanguage(new Locale("es", "ES"));
-                        tts.setSpeechRate(1.0f);
-                        tts.speak(resultado, TextToSpeech.QUEUE_ADD, null);
-                    }
-                }
-            });
-            //txtResults.setText(classes[maxPos]);
-
-            // Releases model resources if no longer used.
-            model.close();
-        } catch (IOException e) {
-            Log.i("error setzo", "classifyImage: "+e.getMessage());
-
-        }
-    }
-
-    /*public void classifyImage(Bitmap image){
     try {
-       // txtResults.setText("sin al procesar el modelo");
-        Model model = Model.newInstance(getApplicationContext());
+
+        ModelExamen model = ModelExamen.newInstance(getApplicationContext());
+        //Model model = Model.newInstance(getApplicationContext());
         image = Bitmap.createScaledBitmap(image, imageSize, imageSize, true);
 
         // Creates inputs for reference.
@@ -463,7 +318,7 @@ protected void setFragment() {
         inputFeature0.loadBuffer(byteBuffer);
 
         // Runs model inference and gets result.
-        Model.Outputs outputs = model.process(inputFeature0);
+        ModelExamen.Outputs outputs = model.process(inputFeature0);
         TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
 
         float[] confidences = outputFeature0.getFloatArray();
@@ -476,6 +331,7 @@ protected void setFragment() {
                 maxPos = i;
             }
         }
+
         final String[] classes = {"Auditorio", "Biblioteca", "Centro Medico", "Comedor 2","Departamento Academico",
                 "Departamento de Archivos","Departamento de Investigacion","Facultad Ciencias de la Salud","Facultad Ciencias Empresariales","Facultad de Ciencias Pedagogicas","Instituto de informatica",
                 "Parqueadero  Estudiantes","Parqueadero Administrativo","Parqueadero autoridades","Polideportivo","Rectorado","Rotonda"};
@@ -489,14 +345,14 @@ protected void setFragment() {
             }
         });
         //invocar el text to speech
-        tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+        hablar = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
                 if (status==TextToSpeech.SUCCESS)
                 {
-                    tts.setLanguage(new Locale("es", "ES"));
-                    tts.setSpeechRate(1.0f);
-                    tts.speak(resultado, TextToSpeech.QUEUE_ADD, null);
+                    hablar.setLanguage(new Locale("es", "ES"));
+                    hablar.setSpeechRate(1.0f);
+                    hablar.speak(resultado, TextToSpeech.QUEUE_ADD, null);
                 }
             }
         });
@@ -506,7 +362,7 @@ protected void setFragment() {
         //txtResults.setText("error");
         Log.i("error setzo", "classifyImage: "+e.getMessage());
     }
-}*/
+}
 }
 
 
